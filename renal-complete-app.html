@@ -1,0 +1,783 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="小児腎機能評価・eGFR計算・尿排泄分数（FE）計算の統合アプリ">
+  <meta name="theme-color" content="#667eea">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="default">
+  <meta name="apple-mobile-web-app-title" content="腎機能評価">
+  
+  <title>小児腎機能評価アプリ（統合版）</title>
+  
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+  <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;500;700;900&display=swap" rel="stylesheet">
+  
+  <style>
+    body {
+      font-family: 'Noto Sans JP', sans-serif;
+    }
+    
+    .gradient-header {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    }
+    
+    .tab-active {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white;
+    }
+    
+    .tab-inactive {
+      background: #f3f4f6;
+      color: #6b7280;
+    }
+    
+    .result-box {
+      animation: slideUp 0.4s ease-out;
+    }
+    
+    @keyframes slideUp {
+      from {
+        opacity: 0;
+        transform: translateY(20px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+    
+    .egfr-excellent {
+      background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+    }
+    
+    .egfr-good {
+      background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
+    }
+    
+    .egfr-mild {
+      background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
+    }
+    
+    .egfr-moderate {
+      background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
+    }
+    
+    .egfr-severe {
+      background: linear-gradient(135deg, #991b1b 0%, #7f1d1d 100%);
+    }
+    
+    .fe-prerenal {
+      background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
+    }
+    
+    .fe-renal {
+      background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
+    }
+    
+    .fe-intermediate {
+      background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
+    }
+    
+    .table-header {
+      background: linear-gradient(135deg, #667eea15 0%, #764ba215 100%);
+    }
+  </style>
+</head>
+<body class="bg-gradient-to-br from-blue-50 via-purple-50 to-pink-50 min-h-screen">
+  <div id="root"></div>
+
+  <script type="text/babel">
+    const { useState } = React;
+
+    // 基準値データ（以前のデータ）
+    const creatinineData = {
+      common: [
+        { age: "3〜5ヶ月", p2_5: 0.14, p50: 0.20, p97_5: 0.26 },
+        { age: "6〜8ヶ月", p2_5: 0.14, p50: 0.22, p97_5: 0.31 },
+        { age: "9〜11ヶ月", p2_5: 0.14, p50: 0.22, p97_5: 0.34 },
+        { age: "1歳", p2_5: 0.16, p50: 0.23, p97_5: 0.32 },
+        { age: "2歳", p2_5: 0.17, p50: 0.24, p97_5: 0.37 },
+        { age: "3歳", p2_5: 0.21, p50: 0.27, p97_5: 0.37 },
+        { age: "4歳", p2_5: 0.20, p50: 0.30, p97_5: 0.40 },
+        { age: "5歳", p2_5: 0.25, p50: 0.34, p97_5: 0.45 },
+        { age: "6歳", p2_5: 0.25, p50: 0.34, p97_5: 0.48 },
+        { age: "7歳", p2_5: 0.28, p50: 0.37, p97_5: 0.49 },
+        { age: "8歳", p2_5: 0.29, p50: 0.40, p97_5: 0.53 },
+        { age: "9歳", p2_5: 0.34, p50: 0.41, p97_5: 0.51 },
+        { age: "10歳", p2_5: 0.30, p50: 0.41, p97_5: 0.57 },
+        { age: "11歳", p2_5: 0.35, p50: 0.45, p97_5: 0.58 }
+      ],
+      male: [
+        { age: "12歳", p2_5: 0.40, p50: 0.53, p97_5: 0.61 },
+        { age: "13歳", p2_5: 0.42, p50: 0.59, p97_5: 0.80 },
+        { age: "14歳", p2_5: 0.54, p50: 0.65, p97_5: 0.96 },
+        { age: "15歳", p2_5: 0.48, p50: 0.68, p97_5: 0.93 },
+        { age: "16歳", p2_5: 0.62, p50: 0.73, p97_5: 0.96 }
+      ],
+      female: [
+        { age: "12歳", p2_5: 0.40, p50: 0.52, p97_5: 0.66 },
+        { age: "13歳", p2_5: 0.41, p50: 0.53, p97_5: 0.69 },
+        { age: "14歳", p2_5: 0.46, p50: 0.58, p97_5: 0.71 },
+        { age: "15歳", p2_5: 0.47, p50: 0.56, p97_5: 0.72 },
+        { age: "16歳", p2_5: 0.51, p50: 0.59, p97_5: 0.74 }
+      ]
+    };
+
+    // FE計算用のデータ
+    const feCalculators = {
+      FeNa: {
+        name: 'FeNa（ナトリウム排泄分数）',
+        description: '最も基本・最頻出のAKI鑑別指標',
+        inputs: ['血清Na', '尿中Na', '血清Cr', '尿中Cr'],
+        units: ['mEq/L', 'mEq/L', 'mg/dL', 'mg/dL'],
+        interpretation: (value) => {
+          if (value < 1) return { result: '＜1%：腎前性を示唆', class: 'fe-prerenal', detail: '脱水、心不全など腎前性の可能性が高い' };
+          if (value > 2) return { result: '＞2%：腎性を示唆', class: 'fe-renal', detail: 'ATN（急性尿細管壊死）など腎性の可能性が高い' };
+          return { result: '1-2%：中間域', class: 'fe-intermediate', detail: '他の指標と合わせて総合的に判断' };
+        },
+        note: '⚠️ 利尿薬使用中は当てにならない'
+      },
+      FeUN: {
+        name: 'FeUN（尿素窒素排泄分数）',
+        description: 'FeNaの代替として重要（利尿薬使用中でも使える）',
+        inputs: ['血清BUN', '尿中BUN', '血清Cr', '尿中Cr'],
+        units: ['mg/dL', 'mg/dL', 'mg/dL', 'mg/dL'],
+        interpretation: (value) => {
+          if (value < 35) return { result: '＜35%：腎前性を示唆', class: 'fe-prerenal', detail: '脱水など腎前性の可能性が高い' };
+          if (value > 50) return { result: '＞50%：腎性を示唆', class: 'fe-renal', detail: 'ATNなど腎性の可能性が高い' };
+          return { result: '35-50%：中間域', class: 'fe-intermediate', detail: '他の指標と合わせて総合的に判断' };
+        },
+        note: '💡 利尿薬使用中やICU・重症患者で有用'
+      },
+      FeK: {
+        name: 'FeK（カリウム排泄分数）',
+        description: '電解質異常の評価',
+        inputs: ['血清K', '尿中K', '血清Cr', '尿中Cr'],
+        units: ['mEq/L', 'mEq/L', 'mg/dL', 'mg/dL'],
+        interpretation: (value) => {
+          if (value < 5) return { result: '＜5%：腎外性K喪失', class: 'fe-prerenal', detail: '消化管からの喪失など' };
+          if (value > 15) return { result: '＞15%：腎性K喪失', class: 'fe-renal', detail: '利尿薬、尿細管障害など' };
+          return { result: '5-15%：中間域', class: 'fe-intermediate', detail: '臨床状況と合わせて判断' };
+        },
+        note: '💡 低K血症：腎性か腎外性か / 高K血症：排泄障害の評価'
+      },
+      FeUA: {
+        name: 'FeUA（尿酸排泄分数）',
+        description: 'SIADHや低Na評価で有用',
+        inputs: ['血清尿酸', '尿中尿酸', '血清Cr', '尿中Cr'],
+        units: ['mg/dL', 'mg/dL', 'mg/dL', 'mg/dL'],
+        interpretation: (value) => {
+          if (value > 10) return { result: '＞10%：SIADHを支持', class: 'fe-renal', detail: 'SIADHの可能性が高い' };
+          if (value < 5) return { result: '＜5%：低容量性低Na等', class: 'fe-prerenal', detail: '脱水など低容量性の可能性' };
+          return { result: '5-10%：中間域', class: 'fe-intermediate', detail: '臨床状況と合わせて判断' };
+        },
+        note: '💡 SIADH診断の補助に有用'
+      },
+      FeP: {
+        name: 'FeP（リン排泄分数）',
+        description: '副甲状腺・尿細管機能評価',
+        inputs: ['血清P', '尿中P', '血清Cr', '尿中Cr'],
+        units: ['mg/dL', 'mg/dL', 'mg/dL', 'mg/dL'],
+        interpretation: (value) => {
+          if (value < 5) return { result: '＜5%：正常', class: 'fe-prerenal', detail: 'リン再吸収は正常' };
+          if (value > 20) return { result: '＞20%：リン喪失亢進', class: 'fe-renal', detail: 'Fanconi症候群、PTH過剰など' };
+          return { result: '5-20%：中間域', class: 'fe-intermediate', detail: '臨床状況と合わせて判断' };
+        },
+        note: '💡 Fanconi症候群やPTH作用評価に使用'
+      },
+      FeMg: {
+        name: 'FeMg（マグネシウム排泄分数）',
+        description: 'Mg異常の評価（やや専門的）',
+        inputs: ['血清Mg', '尿中Mg', '血清Cr', '尿中Cr'],
+        units: ['mg/dL', 'mg/dL', 'mg/dL', 'mg/dL'],
+        interpretation: (value) => {
+          if (value < 2) return { result: '＜2%：腎外性Mg喪失', class: 'fe-prerenal', detail: '消化管からの喪失、摂取不足など' };
+          if (value > 4) return { result: '＞4%：腎性Mg喪失', class: 'fe-renal', detail: '尿細管障害、利尿薬など' };
+          return { result: '2-4%：中間域', class: 'fe-intermediate', detail: '臨床状況と合わせて判断' };
+        },
+        note: '💡 低Mg血症の原因評価、腎性Mg喪失の判断'
+      }
+    };
+
+    const PediatricRenalApp = () => {
+      const [activeTab, setActiveTab] = useState('creatinine');
+      const [selectedAge, setSelectedAge] = useState('');
+      const [gender, setGender] = useState('');
+      const [inputValue, setInputValue] = useState('');
+      const [result, setResult] = useState(null);
+      const [height, setHeight] = useState('');
+      const [showEgfr, setShowEgfr] = useState(false);
+      
+      // FE計算用のstate
+      const [selectedFE, setSelectedFE] = useState('FeNa');
+      const [feInputs, setFeInputs] = useState({});
+      const [feResult, setFeResult] = useState(null);
+
+      // eGFR計算（Schwartz式）
+      const calculateEgfrSchwartz = (creatinine, heightCm) => {
+        const k = 0.413;
+        return (k * heightCm) / creatinine;
+      };
+
+      // 腎機能ステージ判定
+      const getGfrStage = (egfr) => {
+        if (egfr >= 90) {
+          return { stage: 'G1', label: '正常または高値', class: 'egfr-excellent', color: 'text-green-700' };
+        } else if (egfr >= 60) {
+          return { stage: 'G2', label: '軽度低下', class: 'egfr-good', color: 'text-blue-700' };
+        } else if (egfr >= 45) {
+          return { stage: 'G3a', label: '軽度〜中等度低下', class: 'egfr-mild', color: 'text-yellow-700' };
+        } else if (egfr >= 30) {
+          return { stage: 'G3b', label: '中等度〜高度低下', class: 'egfr-moderate', color: 'text-orange-700' };
+        } else if (egfr >= 15) {
+          return { stage: 'G4', label: '高度低下', class: 'egfr-moderate', color: 'text-red-700' };
+        } else {
+          return { stage: 'G5', label: '末期腎不全', class: 'egfr-severe', color: 'text-red-900' };
+        }
+      };
+
+      const getReferenceValues = () => {
+        if (!selectedAge) return null;
+        const commonData = creatinineData.common.find(d => d.age === selectedAge);
+        if (commonData) return commonData;
+        const genderData = gender === 'male' ? creatinineData.male : creatinineData.female;
+        return genderData.find(d => d.age === selectedAge);
+      };
+
+      const evaluateValue = () => {
+        const value = parseFloat(inputValue);
+        if (isNaN(value)) {
+          alert('数値を入力してください');
+          return;
+        }
+
+        const refValues = getReferenceValues();
+        if (!refValues) {
+          alert('年齢を選択してください');
+          return;
+        }
+
+        let evaluation = '';
+        let color = '';
+        let egfr = null;
+        let gfrStage = null;
+
+        if (activeTab === 'creatinine' && height && showEgfr) {
+          const heightVal = parseFloat(height);
+          if (!isNaN(heightVal)) {
+            egfr = calculateEgfrSchwartz(value, heightVal);
+            gfrStage = getGfrStage(egfr);
+          }
+        }
+
+        if (value < refValues.p2_5) {
+          evaluation = '2.5パーセンタイル未満（低値）';
+          color = 'text-blue-600';
+        } else if (value >= refValues.p2_5 && value <= refValues.p97_5) {
+          evaluation = '正常範囲（2.5〜97.5パーセンタイル）';
+          color = 'text-green-600';
+        } else {
+          evaluation = '97.5パーセンタイル超（高値）';
+          color = 'text-red-600';
+        }
+
+        setResult({ evaluation, color, refValues, value, egfr, gfrStage });
+      };
+
+      // FE計算
+      const calculateFE = () => {
+        const calculator = feCalculators[selectedFE];
+        const serum1 = parseFloat(feInputs.serum1 || 0);
+        const urine1 = parseFloat(feInputs.urine1 || 0);
+        const serumCr = parseFloat(feInputs.serumCr || 0);
+        const urineCr = parseFloat(feInputs.urineCr || 0);
+
+        if (!serum1 || !urine1 || !serumCr || !urineCr) {
+          alert('すべての値を入力してください');
+          return;
+        }
+
+        const feValue = (urine1 * serumCr) / (serum1 * urineCr) * 100;
+        const interpretation = calculator.interpretation(feValue);
+
+        setFeResult({
+          value: feValue,
+          ...interpretation
+        });
+      };
+
+      const resetForm = () => {
+        setSelectedAge('');
+        setGender('');
+        setInputValue('');
+        setResult(null);
+        setHeight('');
+        setShowEgfr(false);
+      };
+
+      const resetFE = () => {
+        setFeInputs({});
+        setFeResult(null);
+      };
+
+      const needsGender = selectedAge && creatinineData.male.some(d => d.age === selectedAge);
+
+      return (
+        <div className="max-w-6xl mx-auto p-6">
+          {/* ヘッダー */}
+          <div className="gradient-header rounded-3xl shadow-2xl p-8 mb-6 text-white">
+            <h1 className="text-4xl font-bold text-center mb-2">小児腎機能評価アプリ</h1>
+            <p className="text-center text-blue-100">基準値評価・eGFR計算・FE計算の統合版</p>
+          </div>
+
+          {/* タブ */}
+          <div className="bg-white rounded-2xl shadow-xl p-2 mb-6">
+            <div className="grid grid-cols-2 gap-2">
+              <button
+                onClick={() => { setActiveTab('creatinine'); resetForm(); }}
+                className={`py-3 px-4 rounded-xl font-bold transition-all ${
+                  activeTab === 'creatinine' ? 'tab-active' : 'tab-inactive hover:bg-gray-200'
+                }`}
+              >
+                血清Cr・eGFR
+              </button>
+              <button
+                onClick={() => { setActiveTab('fe'); resetFE(); }}
+                className={`py-3 px-4 rounded-xl font-bold transition-all ${
+                  activeTab === 'fe' ? 'tab-active' : 'tab-inactive hover:bg-gray-200'
+                }`}
+              >
+                尿排泄分数（FE）
+              </button>
+            </div>
+          </div>
+
+          {/* メインコンテンツ */}
+          {activeTab === 'creatinine' ? (
+            /* Cr・eGFR画面 */
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+              {/* 入力エリア */}
+              <div className="bg-white rounded-2xl shadow-xl p-6">
+                <h2 className="text-2xl font-bold mb-6 text-purple-800">血清クレアチニン・eGFR</h2>
+
+                <div className="space-y-4">
+                  {/* 年齢選択 */}
+                  <div>
+                    <label className="block text-sm font-semibold text-gray-700 mb-2">年齢</label>
+                    <select
+                      value={selectedAge}
+                      onChange={(e) => setSelectedAge(e.target.value)}
+                      className="w-full p-3 border-2 border-gray-300 rounded-lg focus:border-purple-500 focus:outline-none"
+                    >
+                      <option value="">-- 年齢を選択 --</option>
+                      {[...creatinineData.common.map(d => ({ value: d.age, label: d.age })),
+                        ...creatinineData.male.map(d => ({ value: d.age, label: d.age }))].map(option => (
+                        <option key={option.value} value={option.value}>{option.label}</option>
+                      ))}
+                    </select>
+                  </div>
+
+                  {/* 性別選択 */}
+                  {needsGender && (
+                    <div>
+                      <label className="block text-sm font-semibold text-gray-700 mb-2">性別</label>
+                      <div className="grid grid-cols-2 gap-3">
+                        <button
+                          onClick={() => setGender('male')}
+                          className={`py-3 rounded-lg border-2 font-semibold transition-all ${
+                            gender === 'male' ? 'border-blue-500 bg-blue-50 text-blue-700' : 'border-gray-300 hover:border-blue-300'
+                          }`}
+                        >
+                          男児
+                        </button>
+                        <button
+                          onClick={() => setGender('female')}
+                          className={`py-3 rounded-lg border-2 font-semibold transition-all ${
+                            gender === 'female' ? 'border-pink-500 bg-pink-50 text-pink-700' : 'border-gray-300 hover:border-pink-300'
+                          }`}
+                        >
+                          女児
+                        </button>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* 測定値入力 */}
+                  <div>
+                    <label className="block text-sm font-semibold text-gray-700 mb-2">
+                      血清クレアチニン (mg/dL)
+                    </label>
+                    <input
+                      type="number"
+                      step="0.01"
+                      value={inputValue}
+                      onChange={(e) => setInputValue(e.target.value)}
+                      placeholder="例: 0.35"
+                      className="w-full p-3 border-2 border-gray-300 rounded-lg focus:border-purple-500 focus:outline-none"
+                    />
+                  </div>
+
+                  {/* eGFR計算オプション */}
+                  <div className="bg-blue-50 border-2 border-blue-200 rounded-xl p-4">
+                    <label className="flex items-center gap-2 cursor-pointer mb-3">
+                      <input
+                        type="checkbox"
+                        checked={showEgfr}
+                        onChange={(e) => setShowEgfr(e.target.checked)}
+                        className="w-5 h-5 text-blue-600 rounded"
+                      />
+                      <span className="font-semibold text-gray-800">eGFRを計算する</span>
+                    </label>
+
+                    {showEgfr && (
+                      <div>
+                        <label className="block text-sm font-semibold text-gray-700 mb-2">
+                          身長 (cm) <span className="text-red-500">*</span>
+                        </label>
+                        <input
+                          type="number"
+                          step="0.1"
+                          value={height}
+                          onChange={(e) => setHeight(e.target.value)}
+                          placeholder="例: 120.5"
+                          className="w-full p-3 border-2 border-gray-300 rounded-lg focus:border-blue-500 focus:outline-none"
+                        />
+                        <p className="text-xs text-gray-600 mt-2">
+                          ※ Schwartz式を使用: eGFR = 0.413 × 身長(cm) / Cr(mg/dL)
+                        </p>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* ボタン */}
+                  <div className="flex gap-3">
+                    <button
+                      onClick={evaluateValue}
+                      className="flex-1 py-3 bg-gradient-to-r from-purple-600 to-blue-600 text-white rounded-xl font-bold hover:from-purple-700 hover:to-blue-700 transition-all shadow-lg"
+                    >
+                      評価する
+                    </button>
+                    <button
+                      onClick={resetForm}
+                      className="px-6 py-3 bg-gray-200 text-gray-700 rounded-xl font-bold hover:bg-gray-300 transition-all"
+                    >
+                      リセット
+                    </button>
+                  </div>
+                </div>
+
+                {/* 結果表示 */}
+                {result && (
+                  <div className="mt-6 result-box">
+                    <div className="bg-gradient-to-r from-purple-50 to-blue-50 rounded-xl p-6 border-2 border-purple-200">
+                      <h3 className="text-xl font-bold mb-4 text-gray-800">評価結果</h3>
+                      
+                      <div className="space-y-3">
+                        <div className="bg-white rounded-lg p-4">
+                          <p className="text-sm text-gray-600 mb-1">測定値</p>
+                          <p className="text-3xl font-bold text-purple-700">{result.value} mg/dL</p>
+                        </div>
+
+                        <div className="bg-white rounded-lg p-4">
+                          <p className="text-sm text-gray-600 mb-2">基準値範囲</p>
+                          <div className="grid grid-cols-3 gap-2 text-center text-sm">
+                            <div>
+                              <p className="text-xs text-gray-500">2.5%ile</p>
+                              <p className="font-bold text-gray-700">{result.refValues.p2_5}</p>
+                            </div>
+                            <div>
+                              <p className="text-xs text-gray-500">50%ile</p>
+                              <p className="font-bold text-gray-700">{result.refValues.p50}</p>
+                            </div>
+                            <div>
+                              <p className="text-xs text-gray-500">97.5%ile</p>
+                              <p className="font-bold text-gray-700">{result.refValues.p97_5}</p>
+                            </div>
+                          </div>
+                        </div>
+
+                        <div className="bg-white rounded-lg p-4">
+                          <p className="text-sm text-gray-600 mb-1">判定</p>
+                          <p className={`text-xl font-bold ${result.color}`}>{result.evaluation}</p>
+                        </div>
+
+                        {/* eGFR結果 */}
+                        {result.egfr && result.gfrStage && (
+                          <div className={`${result.gfrStage.class} rounded-lg p-4 text-white`}>
+                            <p className="text-sm mb-2 opacity-90">推算糸球体濾過量（eGFR）</p>
+                            <p className="text-4xl font-bold mb-2">
+                              {result.egfr.toFixed(1)} <span className="text-2xl">mL/min/1.73m²</span>
+                            </p>
+                            <div className="bg-white bg-opacity-20 rounded-lg p-3 mt-3">
+                              <p className="text-sm font-semibold">
+                                腎機能ステージ: {result.gfrStage.stage}
+                              </p>
+                              <p className="text-sm">{result.gfrStage.label}</p>
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              {/* 基準値表 */}
+              <div className="bg-white rounded-2xl shadow-xl p-6 overflow-auto max-h-[800px]">
+                <h2 className="text-2xl font-bold mb-4 text-purple-800">基準値一覧</h2>
+                
+                <h3 className="font-bold mb-2 text-gray-700">3ヶ月〜11歳（男女共通）</h3>
+                <table className="w-full mb-6 text-sm">
+                  <thead>
+                    <tr className="table-header">
+                      <th className="p-2 text-left">年齢</th>
+                      <th className="p-2 text-center">2.5%ile</th>
+                      <th className="p-2 text-center">50%ile</th>
+                      <th className="p-2 text-center">97.5%ile</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {creatinineData.common.map((row, idx) => (
+                      <tr key={idx} className="border-b hover:bg-purple-50">
+                        <td className="p-2">{row.age}</td>
+                        <td className="p-2 text-center">{row.p2_5}</td>
+                        <td className="p-2 text-center font-semibold">{row.p50}</td>
+                        <td className="p-2 text-center">{row.p97_5}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+
+                <h3 className="font-bold mb-2 text-gray-700">12〜16歳（男児）</h3>
+                <table className="w-full mb-4 text-sm">
+                  <thead>
+                    <tr className="table-header">
+                      <th className="p-2 text-left">年齢</th>
+                      <th className="p-2 text-center">2.5%ile</th>
+                      <th className="p-2 text-center">50%ile</th>
+                      <th className="p-2 text-center">97.5%ile</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {creatinineData.male.map((row, idx) => (
+                      <tr key={idx} className="border-b hover:bg-blue-50">
+                        <td className="p-2">{row.age}</td>
+                        <td className="p-2 text-center">{row.p2_5}</td>
+                        <td className="p-2 text-center font-semibold">{row.p50}</td>
+                        <td className="p-2 text-center">{row.p97_5}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+
+                <h3 className="font-bold mb-2 text-gray-700">12〜16歳（女児）</h3>
+                <table className="w-full text-sm">
+                  <thead>
+                    <tr className="table-header">
+                      <th className="p-2 text-left">年齢</th>
+                      <th className="p-2 text-center">2.5%ile</th>
+                      <th className="p-2 text-center">50%ile</th>
+                      <th className="p-2 text-center">97.5%ile</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {creatinineData.female.map((row, idx) => (
+                      <tr key={idx} className="border-b hover:bg-pink-50">
+                        <td className="p-2">{row.age}</td>
+                        <td className="p-2 text-center">{row.p2_5}</td>
+                        <td className="p-2 text-center font-semibold">{row.p50}</td>
+                        <td className="p-2 text-center">{row.p97_5}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+                <p className="text-xs text-gray-500 mt-4">
+                  出典: Uemura O, et al. Clin Exp Nephrol 2011; 15: 694-699.
+                </p>
+              </div>
+            </div>
+          ) : (
+            /* FE計算画面 */
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+              {/* FE入力エリア */}
+              <div className="bg-white rounded-2xl shadow-xl p-6">
+                <h2 className="text-2xl font-bold mb-6 text-purple-800">FE計算</h2>
+
+                {/* FE選択 */}
+                <div className="mb-6">
+                  <label className="block text-sm font-semibold text-gray-700 mb-2">計算するFE</label>
+                  <select
+                    value={selectedFE}
+                    onChange={(e) => { setSelectedFE(e.target.value); resetFE(); }}
+                    className="w-full p-3 border-2 border-gray-300 rounded-lg focus:border-purple-500 focus:outline-none"
+                  >
+                    {Object.keys(feCalculators).map(key => (
+                      <option key={key} value={key}>{feCalculators[key].name}</option>
+                    ))}
+                  </select>
+                  <p className="text-sm text-gray-600 mt-2">{feCalculators[selectedFE].description}</p>
+                </div>
+
+                {/* 入力フィールド */}
+                <div className="space-y-4">
+                  <div>
+                    <label className="block text-sm font-semibold text-gray-700 mb-2">
+                      {feCalculators[selectedFE].inputs[0]} ({feCalculators[selectedFE].units[0]})
+                    </label>
+                    <input
+                      type="number"
+                      step="0.01"
+                      value={feInputs.serum1 || ''}
+                      onChange={(e) => setFeInputs({...feInputs, serum1: e.target.value})}
+                      placeholder="例: 140"
+                      className="w-full p-3 border-2 border-gray-300 rounded-lg focus:border-purple-500 focus:outline-none"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-semibold text-gray-700 mb-2">
+                      {feCalculators[selectedFE].inputs[1]} ({feCalculators[selectedFE].units[1]})
+                    </label>
+                    <input
+                      type="number"
+                      step="0.01"
+                      value={feInputs.urine1 || ''}
+                      onChange={(e) => setFeInputs({...feInputs, urine1: e.target.value})}
+                      placeholder="例: 50"
+                      className="w-full p-3 border-2 border-gray-300 rounded-lg focus:border-purple-500 focus:outline-none"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-semibold text-gray-700 mb-2">
+                      {feCalculators[selectedFE].inputs[2]} ({feCalculators[selectedFE].units[2]})
+                    </label>
+                    <input
+                      type="number"
+                      step="0.01"
+                      value={feInputs.serumCr || ''}
+                      onChange={(e) => setFeInputs({...feInputs, serumCr: e.target.value})}
+                      placeholder="例: 0.8"
+                      className="w-full p-3 border-2 border-gray-300 rounded-lg focus:border-purple-500 focus:outline-none"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-semibold text-gray-700 mb-2">
+                      {feCalculators[selectedFE].inputs[3]} ({feCalculators[selectedFE].units[3]})
+                    </label>
+                    <input
+                      type="number"
+                      step="0.01"
+                      value={feInputs.urineCr || ''}
+                      onChange={(e) => setFeInputs({...feInputs, urineCr: e.target.value})}
+                      placeholder="例: 100"
+                      className="w-full p-3 border-2 border-gray-300 rounded-lg focus:border-purple-500 focus:outline-none"
+                    />
+                  </div>
+
+                  {/* ボタン */}
+                  <div className="flex gap-3 pt-4">
+                    <button
+                      onClick={calculateFE}
+                      className="flex-1 py-3 bg-gradient-to-r from-purple-600 to-blue-600 text-white rounded-xl font-bold hover:from-purple-700 hover:to-blue-700 transition-all shadow-lg"
+                    >
+                      計算する
+                    </button>
+                    <button
+                      onClick={resetFE}
+                      className="px-6 py-3 bg-gray-200 text-gray-700 rounded-xl font-bold hover:bg-gray-300 transition-all"
+                    >
+                      リセット
+                    </button>
+                  </div>
+                </div>
+
+                {/* 注意事項 */}
+                <div className="mt-6 p-4 bg-yellow-50 border-2 border-yellow-200 rounded-lg">
+                  <p className="text-sm text-gray-700">
+                    <strong>📌 計算式：</strong><br/>
+                    FE (%) = (尿中濃度 × 血清Cr) / (血清濃度 × 尿中Cr) × 100
+                  </p>
+                  {feCalculators[selectedFE].note && (
+                    <p className="text-sm text-gray-700 mt-2">{feCalculators[selectedFE].note}</p>
+                  )}
+                </div>
+              </div>
+
+              {/* FE結果表示 */}
+              <div className="bg-white rounded-2xl shadow-xl p-6">
+                <h2 className="text-2xl font-bold mb-6 text-purple-800">計算結果</h2>
+
+                {feResult ? (
+                  <div className="result-box">
+                    <div className={`${feResult.class} rounded-2xl p-6 text-white shadow-xl`}>
+                      <h3 className="text-xl font-bold mb-4">{feCalculators[selectedFE].name}</h3>
+                      
+                      <div className="bg-white bg-opacity-20 rounded-lg p-4 mb-4">
+                        <p className="text-sm mb-2">計算値</p>
+                        <p className="text-5xl font-bold">
+                          {feResult.value.toFixed(2)}<span className="text-3xl">%</span>
+                        </p>
+                      </div>
+
+                      <div className="bg-white bg-opacity-20 rounded-lg p-4 mb-4">
+                        <p className="text-sm mb-2">判定</p>
+                        <p className="text-xl font-bold">{feResult.result}</p>
+                      </div>
+
+                      <div className="bg-white bg-opacity-20 rounded-lg p-4">
+                        <p className="text-sm mb-2">解釈</p>
+                        <p className="text-sm">{feResult.detail}</p>
+                      </div>
+                    </div>
+
+                    <div className="mt-6 p-4 bg-blue-50 border-2 border-blue-200 rounded-lg">
+                      <p className="text-sm text-gray-700">
+                        <strong>⚠️ 注意：</strong><br/>
+                        FE値は補助的な指標です。必ず臨床状況と合わせて総合的に判断してください。
+                      </p>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="text-center py-12 text-gray-400">
+                    <svg className="w-24 h-24 mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 7h6m0 10v-3m-3 3h.01M9 17h.01M9 14h.01M12 14h.01M15 11h.01M12 11h.01M9 11h.01M7 21h10a2 2 0 002-2V5a2 2 0 00-2-2H7a2 2 0 00-2 2v14a2 2 0 002 2z"/>
+                    </svg>
+                    <p className="text-lg">左側のフォームに入力して<br/>「計算する」ボタンをクリック</p>
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
+
+          {/* 注意事項 */}
+          <div className="mt-6 bg-yellow-50 border-2 border-yellow-200 rounded-2xl p-6">
+            <div className="flex items-start gap-3">
+              <svg className="w-6 h-6 text-yellow-600 flex-shrink-0 mt-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/>
+              </svg>
+              <div className="text-sm text-gray-700">
+                <p className="font-bold mb-2">重要な注意事項:</p>
+                <ul className="list-disc list-inside space-y-1">
+                  <li>このアプリは補助ツールです。最終判断は必ず医師が行ってください</li>
+                  <li>基準値は日本人小児のデータに基づいています</li>
+                  <li>eGFRは推算値であり、実測GFRとは異なる場合があります</li>
+                  <li>FE値は臨床状況と合わせて総合的に判断してください</li>
+                </ul>
+              </div>
+            </div>
+          </div>
+        </div>
+      );
+    };
+
+    ReactDOM.render(<PediatricRenalApp />, document.getElementById('root'));
+  </script>
+</body>
+</html>
