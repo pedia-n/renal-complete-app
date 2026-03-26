@@ -1,0 +1,821 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="小児腎機能評価・eGFR計算・尿排泄分数（FE）計算の統合アプリ">
+  <meta name="theme-color" content="#667eea">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="default">
+  <meta name="apple-mobile-web-app-title" content="腎機能評価">
+  
+  <title>小児腎機能評価アプリ（統合版）</title>
+  
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+    
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Noto Sans JP', sans-serif;
+      background: linear-gradient(135deg, #e0f2fe 0%, #ede9fe 50%, #fce7f3 100%);
+      min-height: 100vh;
+      padding: 20px;
+    }
+    
+    .container {
+      max-width: 1200px;
+      margin: 0 auto;
+    }
+    
+    .header {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white;
+      padding: 40px;
+      border-radius: 24px;
+      text-align: center;
+      margin-bottom: 24px;
+      box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+    }
+    
+    .header h1 {
+      font-size: 32px;
+      margin-bottom: 8px;
+    }
+    
+    .header p {
+      opacity: 0.9;
+    }
+    
+    .tabs {
+      background: white;
+      padding: 8px;
+      border-radius: 16px;
+      margin-bottom: 24px;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 8px;
+    }
+    
+    .tab {
+      padding: 16px;
+      border: none;
+      background: #f3f4f6;
+      color: #6b7280;
+      border-radius: 12px;
+      font-size: 16px;
+      font-weight: bold;
+      cursor: pointer;
+      transition: all 0.3s;
+    }
+    
+    .tab.active {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white;
+    }
+    
+    .content {
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 24px;
+    }
+    
+    @media (min-width: 1024px) {
+      .content {
+        grid-template-columns: 1fr 1fr;
+      }
+    }
+    
+    .card {
+      background: white;
+      padding: 32px;
+      border-radius: 16px;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+    }
+    
+    .card h2 {
+      color: #764ba2;
+      margin-bottom: 24px;
+      font-size: 24px;
+    }
+    
+    .form-group {
+      margin-bottom: 20px;
+    }
+    
+    .form-group label {
+      display: block;
+      font-weight: 600;
+      margin-bottom: 8px;
+      color: #374151;
+      font-size: 14px;
+    }
+    
+    .form-group input,
+    .form-group select {
+      width: 100%;
+      padding: 12px;
+      border: 2px solid #e5e7eb;
+      border-radius: 8px;
+      font-size: 16px;
+      transition: border-color 0.3s;
+    }
+    
+    .form-group input:focus,
+    .form-group select:focus {
+      outline: none;
+      border-color: #667eea;
+    }
+    
+    .gender-buttons {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+    }
+    
+    .gender-btn {
+      padding: 12px;
+      border: 2px solid #e5e7eb;
+      background: white;
+      border-radius: 8px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.3s;
+    }
+    
+    .gender-btn.active {
+      border-color: #667eea;
+      background: #ede9fe;
+      color: #667eea;
+    }
+    
+    .button-group {
+      display: flex;
+      gap: 12px;
+      margin-top: 24px;
+    }
+    
+    .btn {
+      flex: 1;
+      padding: 16px;
+      border: none;
+      border-radius: 12px;
+      font-size: 16px;
+      font-weight: bold;
+      cursor: pointer;
+      transition: all 0.3s;
+    }
+    
+    .btn-primary {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white;
+    }
+    
+    .btn-primary:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 6px 20px rgba(102, 126, 234, 0.4);
+    }
+    
+    .btn-secondary {
+      background: #f3f4f6;
+      color: #374151;
+    }
+    
+    .result {
+      margin-top: 24px;
+      padding: 24px;
+      border-radius: 12px;
+      animation: slideUp 0.4s ease-out;
+    }
+    
+    @keyframes slideUp {
+      from {
+        opacity: 0;
+        transform: translateY(20px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+    
+    .result-value {
+      font-size: 36px;
+      font-weight: bold;
+      margin: 16px 0;
+    }
+    
+    .result-label {
+      font-size: 14px;
+      opacity: 0.9;
+      margin-bottom: 8px;
+    }
+    
+    .result-box {
+      background: rgba(255,255,255,0.2);
+      padding: 16px;
+      border-radius: 8px;
+      margin-bottom: 12px;
+    }
+    
+    .egfr-excellent { background: linear-gradient(135deg, #10b981 0%, #059669 100%); color: white; }
+    .egfr-good { background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%); color: white; }
+    .egfr-mild { background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%); color: white; }
+    .egfr-moderate { background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%); color: white; }
+    .egfr-severe { background: linear-gradient(135deg, #991b1b 0%, #7f1d1d 100%); color: white; }
+    
+    .fe-prerenal { background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%); color: white; }
+    .fe-renal { background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%); color: white; }
+    .fe-intermediate { background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%); color: white; }
+    
+    .hidden {
+      display: none;
+    }
+    
+    .checkbox-group {
+      background: #dbeafe;
+      border: 2px solid #3b82f6;
+      padding: 16px;
+      border-radius: 8px;
+      margin-bottom: 16px;
+    }
+    
+    .checkbox-group label {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin-bottom: 12px;
+      cursor: pointer;
+    }
+    
+    .checkbox-group input[type="checkbox"] {
+      width: 20px;
+      height: 20px;
+    }
+    
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 16px;
+      font-size: 14px;
+    }
+    
+    th, td {
+      padding: 12px 8px;
+      text-align: left;
+      border-bottom: 1px solid #e5e7eb;
+    }
+    
+    th {
+      background: linear-gradient(135deg, rgba(102,126,234,0.1) 0%, rgba(118,75,162,0.1) 100%);
+      font-weight: bold;
+      color: #374151;
+    }
+    
+    tr:hover {
+      background: #f9fafb;
+    }
+    
+    .warning {
+      background: #fef3c7;
+      border: 2px solid #f59e0b;
+      padding: 16px;
+      border-radius: 12px;
+      margin-top: 24px;
+    }
+    
+    .warning strong {
+      display: block;
+      margin-bottom: 8px;
+      color: #92400e;
+    }
+    
+    .warning ul {
+      margin-left: 20px;
+      color: #78350f;
+    }
+    
+    .warning li {
+      margin-bottom: 4px;
+    }
+    
+    .empty-state {
+      text-align: center;
+      padding: 60px 20px;
+      color: #9ca3af;
+    }
+    
+    .empty-state svg {
+      width: 80px;
+      height: 80px;
+      margin: 0 auto 16px;
+      opacity: 0.5;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <!-- ヘッダー -->
+    <div class="header">
+      <h1>小児腎機能評価アプリ</h1>
+      <p>基準値評価・eGFR計算・FE計算の統合版</p>
+    </div>
+
+    <!-- タブ -->
+    <div class="tabs">
+      <button class="tab active" onclick="switchTab('creatinine')">血清Cr・eGFR</button>
+      <button class="tab" onclick="switchTab('fe')">尿排泄分数（FE）</button>
+    </div>
+
+    <!-- Crタブの内容 -->
+    <div id="creatinine-content" class="content">
+      <div class="card">
+        <h2>血清クレアチニン・eGFR</h2>
+        
+        <div class="form-group">
+          <label>年齢</label>
+          <select id="age" onchange="checkGenderNeed()">
+            <option value="">-- 年齢を選択 --</option>
+            <option value="3〜5ヶ月">3〜5ヶ月</option>
+            <option value="6〜8ヶ月">6〜8ヶ月</option>
+            <option value="9〜11ヶ月">9〜11ヶ月</option>
+            <option value="1歳">1歳</option>
+            <option value="2歳">2歳</option>
+            <option value="3歳">3歳</option>
+            <option value="4歳">4歳</option>
+            <option value="5歳">5歳</option>
+            <option value="6歳">6歳</option>
+            <option value="7歳">7歳</option>
+            <option value="8歳">8歳</option>
+            <option value="9歳">9歳</option>
+            <option value="10歳">10歳</option>
+            <option value="11歳">11歳</option>
+            <option value="12歳">12歳</option>
+            <option value="13歳">13歳</option>
+            <option value="14歳">14歳</option>
+            <option value="15歳">15歳</option>
+            <option value="16歳">16歳</option>
+          </select>
+        </div>
+
+        <div class="form-group hidden" id="gender-group">
+          <label>性別</label>
+          <div class="gender-buttons">
+            <button class="gender-btn" onclick="selectGender('male')">男児</button>
+            <button class="gender-btn" onclick="selectGender('female')">女児</button>
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label>血清クレアチニン (mg/dL)</label>
+          <input type="number" step="0.01" id="crValue" placeholder="例: 0.35">
+        </div>
+
+        <div class="checkbox-group">
+          <label>
+            <input type="checkbox" id="calcEgfr" onchange="toggleHeight()">
+            <span style="font-weight: 600;">eGFRを計算する</span>
+          </label>
+          <div class="form-group hidden" id="height-group" style="margin-bottom: 0;">
+            <label>身長 (cm) <span style="color: #ef4444;">*</span></label>
+            <input type="number" step="0.1" id="height" placeholder="例: 120.5">
+            <small style="color: #6b7280; display: block; margin-top: 8px;">
+              ※ Schwartz式を使用: eGFR = 0.413 × 身長(cm) / Cr(mg/dL)
+            </small>
+          </div>
+        </div>
+
+        <div class="button-group">
+          <button class="btn btn-primary" onclick="evaluateCr()">評価する</button>
+          <button class="btn btn-secondary" onclick="resetCr()">リセット</button>
+        </div>
+
+        <div id="cr-result"></div>
+      </div>
+
+      <div class="card">
+        <h2>基準値一覧</h2>
+        <div id="reference-table">
+          <h3 style="font-size: 16px; margin-bottom: 12px; color: #374151;">3ヶ月〜11歳（男女共通）</h3>
+          <table>
+            <thead>
+              <tr>
+                <th>年齢</th>
+                <th style="text-align: center;">2.5%ile</th>
+                <th style="text-align: center;">50%ile</th>
+                <th style="text-align: center;">97.5%ile</th>
+              </tr>
+            </thead>
+            <tbody id="common-table"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- FEタブの内容 -->
+    <div id="fe-content" class="content hidden">
+      <div class="card">
+        <h2>FE計算</h2>
+        
+        <div class="form-group">
+          <label>計算するFE</label>
+          <select id="feType" onchange="updateFeLabels()">
+            <option value="FeNa">FeNa（ナトリウム排泄分数）</option>
+            <option value="FeUN">FeUN（尿素窒素排泄分数）</option>
+            <option value="FeK">FeK（カリウム排泄分数）</option>
+            <option value="FeUA">FeUA（尿酸排泄分数）</option>
+            <option value="FeP">FeP（リン排泄分数）</option>
+            <option value="FeMg">FeMg（マグネシウム排泄分数）</option>
+          </select>
+          <small id="feDescription" style="color: #6b7280; display: block; margin-top: 8px;"></small>
+        </div>
+
+        <div class="form-group">
+          <label id="feLabel1"></label>
+          <input type="number" step="0.01" id="feSerum1" placeholder="例: 140">
+        </div>
+
+        <div class="form-group">
+          <label id="feLabel2"></label>
+          <input type="number" step="0.01" id="feUrine1" placeholder="例: 50">
+        </div>
+
+        <div class="form-group">
+          <label>血清Cr (mg/dL)</label>
+          <input type="number" step="0.01" id="feSerumCr" placeholder="例: 0.8">
+        </div>
+
+        <div class="form-group">
+          <label>尿中Cr (mg/dL)</label>
+          <input type="number" step="0.01" id="feUrineCr" placeholder="例: 100">
+        </div>
+
+        <div style="background: #fef3c7; border: 2px solid #f59e0b; padding: 12px; border-radius: 8px; margin-bottom: 16px;">
+          <small style="color: #78350f;">
+            <strong>📌 計算式：</strong><br>
+            FE (%) = (尿中濃度 × 血清Cr) / (血清濃度 × 尿中Cr) × 100
+          </small>
+          <small id="feNote" style="color: #78350f; display: block; margin-top: 8px;"></small>
+        </div>
+
+        <div class="button-group">
+          <button class="btn btn-primary" onclick="calculateFE()">計算する</button>
+          <button class="btn btn-secondary" onclick="resetFE()">リセット</button>
+        </div>
+
+        <div id="fe-result"></div>
+      </div>
+
+      <div class="card">
+        <h2>FE一覧と使い分け</h2>
+        <table style="font-size: 13px;">
+          <thead>
+            <tr>
+              <th>指標</th>
+              <th>主な用途</th>
+              <th>一言で</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr><td><strong>FeNa</strong></td><td>AKI鑑別</td><td>基本だが利尿薬に弱い</td></tr>
+            <tr><td><strong>FeUN</strong></td><td>AKI鑑別</td><td>利尿薬中の切り札</td></tr>
+            <tr><td><strong>FeK</strong></td><td>K異常</td><td>腎から漏れてる？</td></tr>
+            <tr><td><strong>FeUA</strong></td><td>低Na鑑別</td><td>SIADHのヒント</td></tr>
+            <tr><td><strong>FeP</strong></td><td>尿細管障害</td><td>Fanconiなど</td></tr>
+            <tr><td><strong>FeMg</strong></td><td>Mg異常</td><td>やや上級</td></tr>
+          </tbody>
+        </table>
+
+        <div style="background: #dbeafe; border: 2px solid #3b82f6; padding: 16px; border-radius: 12px; margin-top: 24px;">
+          <h3 style="font-size: 16px; margin-bottom: 12px; color: #1e40af;">💡 臨床での使い分けガイド</h3>
+          <div style="font-size: 13px; color: #1e3a8a; line-height: 1.6;">
+            <p><strong>① AKI鑑別：</strong> まずFeNa。利尿薬使用中ならFeUN</p>
+            <p><strong>② 電解質異常：</strong> FeK（低K・高K評価）、FeMg（低Mg評価）</p>
+            <p><strong>③ SIADH疑い：</strong> FeUA（＞10%でSIADH支持）</p>
+            <p><strong>④ 尿細管障害：</strong> FeP（Fanconi症候群など）</p>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 注意事項 -->
+    <div class="warning">
+      <strong>⚠️ 重要な注意事項:</strong>
+      <ul>
+        <li>このアプリは補助ツールです。最終判断は必ず医師が行ってください</li>
+        <li>基準値は日本人小児のデータに基づいています</li>
+        <li>eGFRは推算値であり、実測GFRとは異なる場合があります</li>
+        <li>FE値は臨床状況と合わせて総合的に判断してください</li>
+      </ul>
+    </div>
+  </div>
+
+  <script>
+    // データベース
+    const crData = {
+      common: [
+        { age: "3〜5ヶ月", p2_5: 0.14, p50: 0.20, p97_5: 0.26 },
+        { age: "6〜8ヶ月", p2_5: 0.14, p50: 0.22, p97_5: 0.31 },
+        { age: "9〜11ヶ月", p2_5: 0.14, p50: 0.22, p97_5: 0.34 },
+        { age: "1歳", p2_5: 0.16, p50: 0.23, p97_5: 0.32 },
+        { age: "2歳", p2_5: 0.17, p50: 0.24, p97_5: 0.37 },
+        { age: "3歳", p2_5: 0.21, p50: 0.27, p97_5: 0.37 },
+        { age: "4歳", p2_5: 0.20, p50: 0.30, p97_5: 0.40 },
+        { age: "5歳", p2_5: 0.25, p50: 0.34, p97_5: 0.45 },
+        { age: "6歳", p2_5: 0.25, p50: 0.34, p97_5: 0.48 },
+        { age: "7歳", p2_5: 0.28, p50: 0.37, p97_5: 0.49 },
+        { age: "8歳", p2_5: 0.29, p50: 0.40, p97_5: 0.53 },
+        { age: "9歳", p2_5: 0.34, p50: 0.41, p97_5: 0.51 },
+        { age: "10歳", p2_5: 0.30, p50: 0.41, p97_5: 0.57 },
+        { age: "11歳", p2_5: 0.35, p50: 0.45, p97_5: 0.58 }
+      ],
+      male: [
+        { age: "12歳", p2_5: 0.40, p50: 0.53, p97_5: 0.61 },
+        { age: "13歳", p2_5: 0.42, p50: 0.59, p97_5: 0.80 },
+        { age: "14歳", p2_5: 0.54, p50: 0.65, p97_5: 0.96 },
+        { age: "15歳", p2_5: 0.48, p50: 0.68, p97_5: 0.93 },
+        { age: "16歳", p2_5: 0.62, p50: 0.73, p97_5: 0.96 }
+      ],
+      female: [
+        { age: "12歳", p2_5: 0.40, p50: 0.52, p97_5: 0.66 },
+        { age: "13歳", p2_5: 0.41, p50: 0.53, p97_5: 0.69 },
+        { age: "14歳", p2_5: 0.46, p50: 0.58, p97_5: 0.71 },
+        { age: "15歳", p2_5: 0.47, p50: 0.56, p97_5: 0.72 },
+        { age: "16歳", p2_5: 0.51, p50: 0.59, p97_5: 0.74 }
+      ]
+    };
+
+    const feData = {
+      FeNa: {
+        name: 'FeNa（ナトリウム排泄分数）',
+        desc: '最も基本・最頻出のAKI鑑別指標',
+        labels: ['血清Na (mEq/L)', '尿中Na (mEq/L)'],
+        note: '⚠️ 利尿薬使用中は当てにならない',
+        interpret: (v) => v < 1 ? ['＜1%：腎前性を示唆', 'fe-prerenal', '脱水、心不全など腎前性の可能性が高い'] :
+                          v > 2 ? ['＞2%：腎性を示唆', 'fe-renal', 'ATN（急性尿細管壊死）など腎性の可能性が高い'] :
+                          ['1-2%：中間域', 'fe-intermediate', '他の指標と合わせて総合的に判断']
+      },
+      FeUN: {
+        name: 'FeUN（尿素窒素排泄分数）',
+        desc: 'FeNaの代替として重要（利尿薬使用中でも使える）',
+        labels: ['血清BUN (mg/dL)', '尿中BUN (mg/dL)'],
+        note: '💡 利尿薬使用中やICU・重症患者で有用',
+        interpret: (v) => v < 35 ? ['＜35%：腎前性を示唆', 'fe-prerenal', '脱水など腎前性の可能性が高い'] :
+                          v > 50 ? ['＞50%：腎性を示唆', 'fe-renal', 'ATNなど腎性の可能性が高い'] :
+                          ['35-50%：中間域', 'fe-intermediate', '他の指標と合わせて総合的に判断']
+      },
+      FeK: {
+        name: 'FeK（カリウム排泄分数）',
+        desc: '電解質異常の評価',
+        labels: ['血清K (mEq/L)', '尿中K (mEq/L)'],
+        note: '💡 低K血症：腎性か腎外性か / 高K血症：排泄障害の評価',
+        interpret: (v) => v < 5 ? ['＜5%：腎外性K喪失', 'fe-prerenal', '消化管からの喪失など'] :
+                          v > 15 ? ['＞15%：腎性K喪失', 'fe-renal', '利尿薬、尿細管障害など'] :
+                          ['5-15%：中間域', 'fe-intermediate', '臨床状況と合わせて判断']
+      },
+      FeUA: {
+        name: 'FeUA（尿酸排泄分数）',
+        desc: 'SIADHや低Na評価で有用',
+        labels: ['血清尿酸 (mg/dL)', '尿中尿酸 (mg/dL)'],
+        note: '💡 SIADH診断の補助に有用',
+        interpret: (v) => v > 10 ? ['＞10%：SIADHを支持', 'fe-renal', 'SIADHの可能性が高い'] :
+                          v < 5 ? ['＜5%：低容量性低Na等', 'fe-prerenal', '脱水など低容量性の可能性'] :
+                          ['5-10%：中間域', 'fe-intermediate', '臨床状況と合わせて判断']
+      },
+      FeP: {
+        name: 'FeP（リン排泄分数）',
+        desc: '副甲状腺・尿細管機能評価',
+        labels: ['血清P (mg/dL)', '尿中P (mg/dL)'],
+        note: '💡 Fanconi症候群やPTH作用評価に使用',
+        interpret: (v) => v < 5 ? ['＜5%：正常', 'fe-prerenal', 'リン再吸収は正常'] :
+                          v > 20 ? ['＞20%：リン喪失亢進', 'fe-renal', 'Fanconi症候群、PTH過剰など'] :
+                          ['5-20%：中間域', 'fe-intermediate', '臨床状況と合わせて判断']
+      },
+      FeMg: {
+        name: 'FeMg（マグネシウム排泄分数）',
+        desc: 'Mg異常の評価（やや専門的）',
+        labels: ['血清Mg (mg/dL)', '尿中Mg (mg/dL)'],
+        note: '💡 低Mg血症の原因評価、腎性Mg喪失の判断',
+        interpret: (v) => v < 2 ? ['＜2%：腎外性Mg喪失', 'fe-prerenal', '消化管からの喪失、摂取不足など'] :
+                          v > 4 ? ['＞4%：腎性Mg喪失', 'fe-renal', '尿細管障害、利尿薬など'] :
+                          ['2-4%：中間域', 'fe-intermediate', '臨床状況と合わせて判断']
+      }
+    };
+
+    let selectedGender = '';
+
+    // 初期化
+    function init() {
+      renderCommonTable();
+      updateFeLabels();
+    }
+
+    function renderCommonTable() {
+      const tbody = document.getElementById('common-table');
+      tbody.innerHTML = crData.common.map(row => `
+        <tr>
+          <td>${row.age}</td>
+          <td style="text-align: center;">${row.p2_5}</td>
+          <td style="text-align: center; font-weight: bold;">${row.p50}</td>
+          <td style="text-align: center;">${row.p97_5}</td>
+        </tr>
+      `).join('');
+    }
+
+    function switchTab(tab) {
+      const tabs = document.querySelectorAll('.tab');
+      tabs.forEach(t => t.classList.remove('active'));
+      event.target.classList.add('active');
+      
+      document.getElementById('creatinine-content').classList.toggle('hidden', tab !== 'creatinine');
+      document.getElementById('fe-content').classList.toggle('hidden', tab !== 'fe');
+    }
+
+    function checkGenderNeed() {
+      const age = document.getElementById('age').value;
+      const needsGender = ['12歳', '13歳', '14歳', '15歳', '16歳'].includes(age);
+      document.getElementById('gender-group').classList.toggle('hidden', !needsGender);
+      if (!needsGender) selectedGender = '';
+    }
+
+    function selectGender(gender) {
+      selectedGender = gender;
+      document.querySelectorAll('.gender-btn').forEach(btn => btn.classList.remove('active'));
+      event.target.classList.add('active');
+    }
+
+    function toggleHeight() {
+      const checked = document.getElementById('calcEgfr').checked;
+      document.getElementById('height-group').classList.toggle('hidden', !checked);
+    }
+
+    function evaluateCr() {
+      const age = document.getElementById('age').value;
+      const crValue = parseFloat(document.getElementById('crValue').value);
+      const calcEgfr = document.getElementById('calcEgfr').checked;
+      const height = parseFloat(document.getElementById('height').value);
+
+      if (!age || isNaN(crValue)) {
+        alert('年齢と測定値を入力してください');
+        return;
+      }
+
+      const needsGender = ['12歳', '13歳', '14歳', '15歳', '16歳'].includes(age);
+      if (needsGender && !selectedGender) {
+        alert('性別を選択してください');
+        return;
+      }
+
+      if (calcEgfr && isNaN(height)) {
+        alert('身長を入力してください');
+        return;
+      }
+
+      let refData = crData.common.find(d => d.age === age);
+      if (!refData) {
+        refData = crData[selectedGender].find(d => d.age === age);
+      }
+
+      let evaluation, color;
+      if (crValue < refData.p2_5) {
+        evaluation = '2.5パーセンタイル未満（低値）';
+        color = '#3b82f6';
+      } else if (crValue >= refData.p2_5 && crValue <= refData.p97_5) {
+        evaluation = '正常範囲（2.5〜97.5パーセンタイル）';
+        color = '#10b981';
+      } else {
+        evaluation = '97.5パーセンタイル超（高値）';
+        color = '#ef4444';
+      }
+
+      let egfrHtml = '';
+      if (calcEgfr) {
+        const egfr = (0.413 * height) / crValue;
+        let stage, stageLabel, stageClass;
+        if (egfr >= 90) {
+          stage = 'G1'; stageLabel = '正常または高値'; stageClass = 'egfr-excellent';
+        } else if (egfr >= 60) {
+          stage = 'G2'; stageLabel = '軽度低下'; stageClass = 'egfr-good';
+        } else if (egfr >= 45) {
+          stage = 'G3a'; stageLabel = '軽度〜中等度低下'; stageClass = 'egfr-mild';
+        } else if (egfr >= 30) {
+          stage = 'G3b'; stageLabel = '中等度〜高度低下'; stageClass = 'egfr-moderate';
+        } else if (egfr >= 15) {
+          stage = 'G4'; stageLabel = '高度低下'; stageClass = 'egfr-moderate';
+        } else {
+          stage = 'G5'; stageLabel = '末期腎不全'; stageClass = 'egfr-severe';
+        }
+
+        egfrHtml = `
+          <div class="result ${stageClass}" style="margin-top: 16px;">
+            <div class="result-label">推算糸球体濾過量（eGFR）</div>
+            <div class="result-value">${egfr.toFixed(1)} <span style="font-size: 24px;">mL/min/1.73m²</span></div>
+            <div class="result-box">
+              <div style="font-weight: 600;">腎機能ステージ: ${stage}</div>
+              <div>${stageLabel}</div>
+            </div>
+          </div>
+        `;
+      }
+
+      document.getElementById('cr-result').innerHTML = `
+        <div class="result" style="background: linear-gradient(135deg, rgba(102,126,234,0.1), rgba(118,75,162,0.1)); border: 2px solid #667eea;">
+          <h3 style="font-size: 18px; margin-bottom: 16px; color: #374151;">評価結果</h3>
+          <div class="result-box" style="background: white;">
+            <div class="result-label">測定値</div>
+            <div class="result-value" style="color: #667eea;">${crValue} <span style="font-size: 20px;">mg/dL</span></div>
+          </div>
+          <div class="result-box" style="background: white;">
+            <div class="result-label">基準値範囲</div>
+            <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 8px; margin-top: 8px; text-align: center; font-size: 14px;">
+              <div><div style="color: #6b7280; font-size: 12px;">2.5%ile</div><div style="font-weight: bold;">${refData.p2_5}</div></div>
+              <div><div style="color: #6b7280; font-size: 12px;">50%ile</div><div style="font-weight: bold;">${refData.p50}</div></div>
+              <div><div style="color: #6b7280; font-size: 12px;">97.5%ile</div><div style="font-weight: bold;">${refData.p97_5}</div></div>
+            </div>
+          </div>
+          <div class="result-box" style="background: white;">
+            <div class="result-label">判定</div>
+            <div style="font-size: 20px; font-weight: bold; color: ${color};">${evaluation}</div>
+          </div>
+          ${egfrHtml}
+        </div>
+      `;
+    }
+
+    function resetCr() {
+      document.getElementById('age').value = '';
+      document.getElementById('crValue').value = '';
+      document.getElementById('height').value = '';
+      document.getElementById('calcEgfr').checked = false;
+      document.getElementById('gender-group').classList.add('hidden');
+      document.getElementById('height-group').classList.add('hidden');
+      document.getElementById('cr-result').innerHTML = '';
+      selectedGender = '';
+      document.querySelectorAll('.gender-btn').forEach(btn => btn.classList.remove('active'));
+    }
+
+    function updateFeLabels() {
+      const type = document.getElementById('feType').value;
+      const fe = feData[type];
+      document.getElementById('feDescription').textContent = fe.desc;
+      document.getElementById('feLabel1').textContent = fe.labels[0];
+      document.getElementById('feLabel2').textContent = fe.labels[1];
+      document.getElementById('feNote').textContent = fe.note;
+    }
+
+    function calculateFE() {
+      const type = document.getElementById('feType').value;
+      const serum1 = parseFloat(document.getElementById('feSerum1').value);
+      const urine1 = parseFloat(document.getElementById('feUrine1').value);
+      const serumCr = parseFloat(document.getElementById('feSerumCr').value);
+      const urineCr = parseFloat(document.getElementById('feUrineCr').value);
+
+      if (isNaN(serum1) || isNaN(urine1) || isNaN(serumCr) || isNaN(urineCr)) {
+        alert('すべての値を入力してください');
+        return;
+      }
+
+      const feValue = (urine1 * serumCr) / (serum1 * urineCr) * 100;
+      const [result, className, detail] = feData[type].interpret(feValue);
+
+      document.getElementById('fe-result').innerHTML = `
+        <div class="result ${className}">
+          <h3 style="font-size: 18px; margin-bottom: 16px; opacity: 0.9;">${feData[type].name}</h3>
+          <div class="result-box">
+            <div class="result-label">計算値</div>
+            <div class="result-value">${feValue.toFixed(2)}<span style="font-size: 28px;">%</span></div>
+          </div>
+          <div class="result-box">
+            <div class="result-label">判定</div>
+            <div style="font-size: 20px; font-weight: bold;">${result}</div>
+          </div>
+          <div class="result-box">
+            <div class="result-label">解釈</div>
+            <div style="font-size: 14px;">${detail}</div>
+          </div>
+        </div>
+        <div style="background: #dbeafe; border: 2px solid #3b82f6; padding: 12px; border-radius: 8px; margin-top: 16px;">
+          <small style="color: #1e3a8a;">
+            <strong>⚠️ 注意：</strong><br>
+            FE値は補助的な指標です。必ず臨床状況と合わせて総合的に判断してください。
+          </small>
+        </div>
+      `;
+    }
+
+    function resetFE() {
+      document.getElementById('feSerum1').value = '';
+      document.getElementById('feUrine1').value = '';
+      document.getElementById('feSerumCr').value = '';
+      document.getElementById('feUrineCr').value = '';
+      document.getElementById('fe-result').innerHTML = '';
+    }
+
+    // ページ読み込み時に初期化
+    window.onload = init;
+  </script>
+</body>
+</html>
